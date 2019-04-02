@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Injector, NgModule, NgZone, Testability} from '@angular/core';
+import {Injector, isDevMode, NgModule, NgZone, Testability} from '@angular/core';
 
 import * as angular from '../common/angular1';
 import {$$TESTABILITY, $DELEGATE, $INJECTOR, $INTERVAL, $PROVIDE, INJECTOR_KEY, LAZY_MODULE_REF, UPGRADE_APP_TYPE_KEY, UPGRADE_MODULE_NAME} from '../common/constants';
@@ -256,7 +256,13 @@ export class UpgradeModule {
                 setTimeout(() => {
                   const $rootScope = $injector.get('$rootScope');
                   const subscription =
-                      this.ngZone.onMicrotaskEmpty.subscribe(() => $rootScope.$digest());
+                      this.ngZone.onMicrotaskEmpty.subscribe(() => {
+                        if (!$rootScope.$$phase) {
+                          $rootScope.$digest()
+                        } else if (isDevMode()) {
+                          console.warn("microtask received during $digest.")
+                        }
+                      });
                   $rootScope.$on('$destroy', () => { subscription.unsubscribe(); });
                 }, 0);
               }
